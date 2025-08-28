@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Focus Tab</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🗂️ Focus Tab</h1>
+      <p class="subtitle">Smart Tab Management</p>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="inactive">Inactive Tabs</button>
+      <button class="tab-btn" data-tab="groups">Group Suggestions</button>
+    </nav>
+
+    <!-- Inactive Tabs Panel -->
+    <div id="inactive-panel" class="panel active">
+      <div class="panel-header">
+        <h2>📊 Inactive Tabs</h2>
+        <p class="description">Tabs not accessed for 24+ hours</p>
+      </div>
+      
+      <div id="inactive-tabs-list" class="tabs-list">
+        <div class="loading">Loading inactive tabs...</div>
+      </div>
+      
+      <div class="actions" id="inactive-actions" style="display: none;">
+        <button id="select-all-inactive" class="btn btn-secondary">Select All</button>
+        <button id="close-selected" class="btn btn-danger">Close Selected</button>
+      </div>
+    </div>
+
+    <!-- Group Suggestions Panel -->
+    <div id="groups-panel" class="panel">
+      <div class="panel-header">
+        <h2>🔗 Group Suggestions</h2>
+        <p class="description">Related tabs you might want to group</p>
+      </div>
+      
+      <div id="group-suggestions-list" class="groups-list">
+        <div class="loading">Loading group suggestions...</div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div class="stats">
+        <span id="total-tabs">0 tabs total</span>
+        <span id="inactive-count">0 inactive</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <rect width="128" height="128" rx="25.6" fill="url(#grad)"/>
+  
+  <!-- Folder icon -->
+  <rect x="25.6" y="44.8" width="76.8" height="51.2" fill="white" rx="2"/>
+  <rect x="25.6" y="32" width="38.4" height="19.2" fill="white" rx="2"/>
+  
+  <!-- Close X -->
+  <g stroke="#ff6b6b" stroke-width="7.68" stroke-linecap="round">
+    <line x1="83.2" y1="57.6" x2="96" y2="70.4"/>
+    <line x1="96" y1="57.6" x2="83.2" y2="70.4"/>
+  </g>
+</svg>

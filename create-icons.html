@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator</title>
+    <style>
+        .icon-container {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Focus Tab Icons</h1>
+    <p>Right-click each icon and save as PNG in the icons/ directory</p>
+    
+    <div class="icon-container">
+        <canvas id="icon16" width="16" height="16"></canvas>
+        <br>16x16
+    </div>
+    <div class="icon-container">
+        <canvas id="icon32" width="32" height="32"></canvas>
+        <br>32x32
+    </div>
+    <div class="icon-container">
+        <canvas id="icon48" width="48" height="48"></canvas>
+        <br>48x48
+    </div>
+    <div class="icon-container">
+        <canvas id="icon128" width="128" height="128"></canvas>
+        <br>128x128
+    </div>
+
+    <script>
+        function drawIcon(canvasId, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            
+            // Draw background circle
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Draw folder/tab icon
+            ctx.fillStyle = 'white';
+            
+            // Scale dimensions based on size
+            const scale = size / 48;
+            
+            // Draw folder base
+            const folderWidth = 32 * scale;
+            const folderHeight = 24 * scale;
+            const startX = (size - folderWidth) / 2;
+            const startY = (size - folderHeight) / 2 + 2 * scale;
+            
+            ctx.fillRect(startX, startY, folderWidth, folderHeight);
+            
+            // Draw folder tab
+            const tabWidth = 12 * scale;
+            const tabHeight = 6 * scale;
+            ctx.fillRect(startX, startY - tabHeight, tabWidth, tabHeight);
+            
+            // Draw X symbol for close
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 2 * scale;
+            ctx.lineCap = 'round';
+            
+            const xSize = 8 * scale;
+            const xX = startX + folderWidth - xSize - 4 * scale;
+            const xY = startY + 4 * scale;
+            
+            ctx.beginPath();
+            ctx.moveTo(xX, xY);
+            ctx.lineTo(xX + xSize, xY + xSize);
+            ctx.moveTo(xX + xSize, xY);
+            ctx.lineTo(xX, xY + xSize);
+            ctx.stroke();
+        }
+        
+        // Draw all icons
+        drawIcon('icon16', 16);
+        drawIcon('icon32', 32);
+        drawIcon('icon48', 48);
+        drawIcon('icon128', 128);
+    </script>
+</body>
+</html>
