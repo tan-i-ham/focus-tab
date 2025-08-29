@@ -3,7 +3,7 @@ let tabActivity = {};
 let groupSuggestions = {};
 
 // Constants
-const INACTIVE_THRESHOLD = 10 * 1000; // 10 seconds in milliseconds (for testing)
+const INACTIVE_THRESHOLD = 600 * 1000; // 10 minutes in milliseconds (for testing)
 const CHECK_INTERVAL = 1; // Check every minute (in minutes)
 
 // Initialize extension
