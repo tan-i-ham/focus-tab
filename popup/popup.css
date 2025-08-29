@@ -201,6 +201,11 @@ body {
   font-weight: 500;
 }
 
+.days-inactive.recent {
+  background: #55efc4;
+  color: #00b894;
+}
+
 .days-inactive.critical {
   background: #fab1a0;
   color: #e17055;

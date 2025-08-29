@@ -96,8 +96,8 @@ class TabCloserPopup {
         </div>
         <div class="tab-meta">
           <span>Last accessed: ${this.formatTimeAgo(tab.lastAccess)}</span>
-          <span class="days-inactive ${tab.daysSinceAccess > 7 ? 'critical' : ''}">
-            ${tab.daysSinceAccess} day${tab.daysSinceAccess !== 1 ? 's' : ''}
+          <span class="days-inactive ${this.getInactiveCriticalClass(tab)}">
+            ${this.formatInactiveDuration(tab)}
           </span>
         </div>
       </div>
@@ -282,15 +282,48 @@ class TabCloserPopup {
     const now = Date.now();
     const diff = now - timestamp;
     const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-    const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    const hours = Math.ceil(diff / (60 * 60 * 1000)); // Use ceil to round up
 
     if (days > 0) {
-      return `${days}d ${hours}h ago`;
+      return `< ${days + 1} day${days + 1 !== 1 ? 's' : ''}`;
     } else if (hours > 0) {
-      return `${hours}h ago`;
+      return `< ${hours} hour${hours !== 1 ? 's' : ''}`;
     } else {
-      return 'Less than 1h ago';
+      return '< 1 hour';
     }
+  }
+
+  formatInactiveDuration(tab) {
+    const now = Date.now();
+    const diff = now - tab.lastAccess;
+    const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+    const hours = Math.ceil(diff / (60 * 60 * 1000));
+
+    if (days > 0) {
+      return `${days} day${days !== 1 ? 's' : ''}`;
+    } else if (hours > 0) {
+      return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    } else {
+      return '< 1 hour';
+    }
+  }
+
+  getInactiveCriticalClass(tab) {
+    const now = Date.now();
+    const diff = now - tab.lastAccess;
+    const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+    const hours = Math.floor(diff / (60 * 60 * 1000));
+    
+    // Green background for 1 hour exactly
+    if (hours === 1 && days === 0) {
+      return 'recent';
+    }
+    // Red background for 7+ days
+    else if (days >= 7) {
+      return 'critical';
+    }
+    // Default yellow background for everything else
+    return '';
   }
 
   escapeHtml(text) {
