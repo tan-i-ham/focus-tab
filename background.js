@@ -23,14 +23,28 @@ async function initializeExtension() {
   const tabs = await chrome.tabs.query({});
   const currentTime = Date.now();
   
+  // Get the currently active tab to mark it as recently accessed
+  const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const activeTabId = activeTabs.length > 0 ? activeTabs[0].id : null;
+  
   tabs.forEach(tab => {
     if (!tabActivity[tab.id]) {
+      // Only set current time for the currently active tab
+      // For all other tabs, set a stale time that will make them appear inactive
+      const lastAccessTime = tab.id === activeTabId ? currentTime : tab.lastAccessed; // 2 hours ago
+
       tabActivity[tab.id] = {
-        lastAccess: currentTime,
+        lastAccess: lastAccessTime,
         url: tab.url,
         title: tab.title,
         created: currentTime
       };
+      
+      if (tab.id === activeTabId) {
+        console.log(`Initialized active tab ${tab.id} as recently accessed`);
+      } else {
+        console.log(`Initialized tab ${tab.id} with stale access time (2 hours ago)`);
+      }
     }
   });
   
@@ -62,7 +76,23 @@ chrome.tabs.onCreated.addListener(async (tab) => {
     title: tab.title,
     created: currentTime
   };
+  console.log(`New tab created: ${tab.id}, marked as recently accessed`);
   await saveTabActivity();
+});
+
+// Also track window focus events to catch tab switches
+chrome.windows.onFocusChanged.addListener(async (windowId) => {
+  if (windowId !== chrome.windows.WINDOW_ID_NONE) {
+    try {
+      const tabs = await chrome.tabs.query({ active: true, windowId: windowId });
+      if (tabs.length > 0) {
+        console.log(`Window ${windowId} focused, updating active tab: ${tabs[0].id}`);
+        await updateTabActivity(tabs[0].id, tabs[0]);
+      }
+    } catch (error) {
+      // Ignore errors for invalid window IDs
+    }
+  }
 });
 
 // Update tab activity timestamp
@@ -74,12 +104,15 @@ async function updateTabActivity(tabId, tab = null) {
   }
   
   if (tab) {
+    const previousAccess = tabActivity[tabId]?.lastAccess;
     tabActivity[tabId] = {
       lastAccess: currentTime,
       url: tab.url,
       title: tab.title,
       created: tabActivity[tabId]?.created || currentTime
     };
+    
+    console.log(`Updated access time for tab ${tabId} (${tab.title.substring(0, 30)}...) from ${previousAccess ? new Date(previousAccess).toISOString() : 'never'} to ${new Date(currentTime).toISOString()}`);
     await saveTabActivity();
   }
 }
@@ -130,9 +163,10 @@ async function checkInactiveTabs() {
         });
       }
     } else {
-      // Tab without activity data - initialize tracking (will be inactive next check)
+      // Tab without activity data - initialize with stale time (will be inactive)
+      const staleTime = currentTime - (2 * 60 * 60 * 1000); // 2 hours ago
       tabActivity[tab.id] = {
-        lastAccess: currentTime,
+        lastAccess: staleTime,
         url: tab.url,
         title: tab.title,
         created: currentTime
@@ -287,9 +321,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               });
             }
           } else {
-            // Tab without activity data - treat as inactive and initialize tracking
+            // Tab without activity data - initialize with stale time since we don't know when it was last accessed
+            const staleTime = currentTime - (2 * 60 * 60 * 1000); // 2 hours ago
             tabActivity[tab.id] = {
-              lastAccess: currentTime,
+              lastAccess: staleTime,
               url: tab.url,
               title: tab.title,
               created: currentTime
