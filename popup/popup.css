@@ -143,6 +143,11 @@ body {
 .tab-item:hover {
   border-color: #667eea;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  transform: translateY(-1px);
+}
+
+.tab-item:hover .tab-title {
+  color: #667eea;
 }
 
 .tab-item.selected {

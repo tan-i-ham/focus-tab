@@ -309,6 +309,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.action === 'getGroupSuggestions') {
         sendResponse({ groupSuggestions: groupSuggestions });
       }
+      
+      if (request.action === 'switchToTab') {
+        const tabId = request.tabId;
+        try {
+          await chrome.tabs.update(tabId, { active: true });
+          const tab = await chrome.tabs.get(tabId);
+          await chrome.windows.update(tab.windowId, { focused: true });
+          sendResponse({ success: true });
+        } catch (e) {
+          console.error('Failed to switch to tab:', tabId, e);
+          sendResponse({ success: false, error: e.message });
+        }
+      }
     } catch (error) {
       console.error('Message handler error:', error);
       sendResponse({ error: error.message });

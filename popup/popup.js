@@ -121,9 +121,12 @@ class TabCloserPopup {
     // Add click handler for tab items
     container.querySelectorAll('.tab-item').forEach(item => {
       item.addEventListener('click', (e) => {
+        // If clicking on checkbox, handle selection
         if (e.target.type === 'checkbox') return;
-        const checkbox = item.querySelector('.tab-checkbox');
-        checkbox.click();
+        
+        // If clicking elsewhere, switch to the tab
+        const tabId = parseInt(item.dataset.tabId);
+        this.switchToTab(tabId);
       });
     });
   }
@@ -227,6 +230,16 @@ class TabCloserPopup {
       
     } catch (error) {
       console.error('Failed to close tabs:', error);
+    }
+  }
+
+  async switchToTab(tabId) {
+    try {
+      await this.sendMessage({ action: 'switchToTab', tabId: tabId });
+      // Close the popup after switching to tab
+      window.close();
+    } catch (error) {
+      console.error('Failed to switch to tab:', error);
     }
   }
 
