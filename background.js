@@ -119,18 +119,31 @@ async function checkInactiveTabs() {
   // Find inactive tabs
   for (const tab of tabs) {
     const activity = tabActivity[tab.id];
-    if (activity && (currentTime - activity.lastAccess) > INACTIVE_THRESHOLD) {
-      inactiveTabs.push({
-        id: tab.id,
-        title: tab.title,
+    if (activity) {
+      if ((currentTime - activity.lastAccess) > INACTIVE_THRESHOLD) {
+        inactiveTabs.push({
+          id: tab.id,
+          title: tab.title,
+          url: tab.url,
+          lastAccess: activity.lastAccess,
+          daysSinceAccess: Math.floor((currentTime - activity.lastAccess) / (24 * 60 * 60 * 1000))
+        });
+      }
+    } else {
+      // Tab without activity data - initialize tracking (will be inactive next check)
+      tabActivity[tab.id] = {
+        lastAccess: currentTime,
         url: tab.url,
-        lastAccess: activity.lastAccess,
-        daysSinceAccess: Math.floor((currentTime - activity.lastAccess) / (24 * 60 * 60 * 1000))
-      });
+        title: tab.title,
+        created: currentTime
+      };
     }
   }
   
   if (inactiveTabs.length > 0) {
+    // Sort tabs by last access time (oldest first)
+    inactiveTabs.sort((a, b) => a.lastAccess - b.lastAccess);
+    
     // Show notification
     chrome.notifications.create('inactiveTabs', {
       type: 'basic',
@@ -253,8 +266,44 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
       
       if (request.action === 'getInactiveTabs') {
-        const result = await chrome.storage.local.get(['inactiveTabs']);
-        sendResponse({ inactiveTabs: result.inactiveTabs || [] });
+        // Calculate inactive tabs in real-time instead of using cached data
+        const currentTime = Date.now();
+        const inactiveTabs = [];
+        
+        // Get all current tabs
+        const tabs = await chrome.tabs.query({});
+        
+        // Find inactive tabs
+        for (const tab of tabs) {
+          const activity = tabActivity[tab.id];
+          if (activity) {
+            if ((currentTime - activity.lastAccess) > INACTIVE_THRESHOLD) {
+              inactiveTabs.push({
+                id: tab.id,
+                title: tab.title,
+                url: tab.url,
+                lastAccess: activity.lastAccess,
+                daysSinceAccess: Math.floor((currentTime - activity.lastAccess) / (24 * 60 * 60 * 1000))
+              });
+            }
+          } else {
+            // Tab without activity data - treat as inactive and initialize tracking
+            tabActivity[tab.id] = {
+              lastAccess: currentTime,
+              url: tab.url,
+              title: tab.title,
+              created: currentTime
+            };
+          }
+        }
+        
+        // Sort tabs by last access time (oldest first)
+        inactiveTabs.sort((a, b) => a.lastAccess - b.lastAccess);
+        
+        // Save any new tab activity data
+        await saveTabActivity();
+        
+        sendResponse({ inactiveTabs: inactiveTabs });
       }
       
       if (request.action === 'getGroupSuggestions') {
