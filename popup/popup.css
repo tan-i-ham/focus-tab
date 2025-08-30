@@ -234,6 +234,23 @@ body {
   background: #e9ecef;
 }
 
+.group-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  color: #6c757d;
+  transition: transform 0.2s ease;
+  user-select: none;
+}
+
+.dropdown-arrow.expanded {
+  transform: rotate(180deg);
+}
+
 .group-info h3 {
   font-size: 13px;
   font-weight: 600;
@@ -256,12 +273,15 @@ body {
 }
 
 .group-tabs {
-  display: none;
-  padding: 8px;
+  max-height: 0;
+  overflow: hidden;
+  padding: 0 8px;
+  transition: max-height 0.3s ease, padding 0.3s ease;
 }
 
 .group-tabs.expanded {
-  display: block;
+  max-height: 500px;
+  padding: 8px;
 }
 
 .group-tab {
@@ -270,6 +290,22 @@ body {
   background: #f8f9fa;
   border-radius: 4px;
   font-size: 12px;
+}
+
+.group-tab.clickable-tab {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.group-tab.clickable-tab:hover {
+  background: #e9ecef;
+  border-color: #667eea;
+  transform: translateY(-1px);
+}
+
+.group-tab.clickable-tab:hover .group-tab-title {
+  color: #667eea;
 }
 
 .group-tab-title {

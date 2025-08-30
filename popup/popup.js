@@ -147,16 +147,19 @@ class TabCloserPopup {
 
     container.innerHTML = suggestions.map((suggestion, index) => `
       <div class="group-item">
-        <div class="group-header" onclick="this.parentElement.querySelector('.group-tabs').classList.toggle('expanded')">
+        <div class="group-header" data-group-index="${index}">
           <div class="group-info">
             <h3>${this.escapeHtml(suggestion.name)}</h3>
             <div class="group-reason">${this.escapeHtml(suggestion.reason)}</div>
           </div>
-          <div class="group-badge">${suggestion.tabs.length} tabs</div>
+          <div class="group-header-right">
+            <div class="group-badge">${suggestion.tabs.length} tabs</div>
+            <div class="dropdown-arrow">▼</div>
+          </div>
         </div>
         <div class="group-tabs">
           ${suggestion.tabs.map(tab => `
-            <div class="group-tab">
+            <div class="group-tab clickable-tab" data-tab-id="${tab.id}">
               <div class="group-tab-title" title="${this.escapeHtml(tab.title)}">
                 ${this.escapeHtml(tab.title)}
               </div>
@@ -173,6 +176,29 @@ class TabCloserPopup {
         </div>
       </div>
     `).join('');
+
+    // Add event listeners for dropdown headers
+    container.querySelectorAll('.group-header').forEach(headerElement => {
+      headerElement.addEventListener('click', () => {
+        const groupItem = headerElement.parentElement;
+        const groupTabs = groupItem.querySelector('.group-tabs');
+        const dropdownArrow = headerElement.querySelector('.dropdown-arrow');
+        
+        // Toggle expanded state
+        groupTabs.classList.toggle('expanded');
+        if (dropdownArrow) {
+          dropdownArrow.classList.toggle('expanded');
+        }
+      });
+    });
+
+    // Add event listeners for clickable tabs
+    container.querySelectorAll('.clickable-tab').forEach(tabElement => {
+      tabElement.addEventListener('click', () => {
+        const tabId = parseInt(tabElement.dataset.tabId);
+        this.switchToTab(tabId);
+      });
+    });
   }
 
   toggleSelectAllInactive() {
