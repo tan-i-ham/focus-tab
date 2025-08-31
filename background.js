@@ -49,6 +49,10 @@ async function initializeExtension() {
   });
   
   await saveTabActivity();
+  
+  // Generate initial group suggestions
+  await analyzeTabGroupings();
+  
   console.log('Focus Tab extension initialized');
 }
 
@@ -193,72 +197,103 @@ async function checkInactiveTabs() {
   await saveTabActivity();
 }
 
-// Analyze tabs for potential groupings
-async function analyzeTabGroupings() {
-  const tabs = await chrome.tabs.query({});
-  const suggestions = {};
+// Analyze tabs for potential groupings with retry mechanism
+async function analyzeTabGroupings(retryCount = 0) {
+  const maxRetries = 3;
   
-  // Group by domain
-  const domainGroups = {};
-  tabs.forEach(tab => {
-    try {
-      const url = new URL(tab.url);
-      const domain = url.hostname;
-      if (!domainGroups[domain]) {
-        domainGroups[domain] = [];
+  try {
+    const tabs = await chrome.tabs.query({});
+    const suggestions = {};
+    
+    if (!tabs || tabs.length === 0) {
+      if (retryCount < maxRetries - 1) {
+        console.log(`No tabs found, retry attempt ${retryCount + 1}/${maxRetries}`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        return await analyzeTabGroupings(retryCount + 1);
+      } else {
+        console.log('Failed to get tabs after 3 attempts, giving up on group suggestions');
+        return;
       }
-      domainGroups[domain].push(tab);
-    } catch (e) {
-      // Skip invalid URLs
     }
-  });
-  
-  // Create suggestions for domains with multiple tabs
-  Object.entries(domainGroups).forEach(([domain, domainTabs]) => {
-    if (domainTabs.length > 1) {
-      suggestions[`domain-${domain}`] = {
-        type: 'domain',
-        name: domain,
-        tabs: domainTabs.map(tab => ({
-          id: tab.id,
-          title: tab.title,
-          url: tab.url
-        })),
-        reason: `${domainTabs.length} tabs from ${domain}`
-      };
-    }
-  });
-  
-  // Group by similar keywords in titles
-  const keywordGroups = {};
-  tabs.forEach(tab => {
-    const words = tab.title.toLowerCase().split(/\s+/).filter(word => word.length > 3);
-    words.forEach(word => {
-      if (!keywordGroups[word]) {
-        keywordGroups[word] = [];
+    
+    // Group by domain
+    const domainGroups = {};
+    tabs.forEach(tab => {
+      try {
+        const url = new URL(tab.url);
+        const domain = url.hostname;
+        if (!domainGroups[domain]) {
+          domainGroups[domain] = [];
+        }
+        domainGroups[domain].push(tab);
+      } catch (e) {
+        // Skip invalid URLs
       }
-      keywordGroups[word].push(tab);
     });
-  });
-  
-  // Create suggestions for keyword groups with multiple tabs
-  Object.entries(keywordGroups).forEach(([keyword, keywordTabs]) => {
-    if (keywordTabs.length > 2) {
-      suggestions[`keyword-${keyword}`] = {
-        type: 'keyword',
-        name: keyword,
-        tabs: keywordTabs.map(tab => ({
-          id: tab.id,
-          title: tab.title,
-          url: tab.url
-        })),
-        reason: `${keywordTabs.length} tabs containing "${keyword}"`
-      };
+    
+    // Create suggestions for domains with multiple tabs
+    Object.entries(domainGroups).forEach(([domain, domainTabs]) => {
+      if (domainTabs.length > 1) {
+        suggestions[`domain-${domain}`] = {
+          type: 'domain',
+          name: domain,
+          tabs: domainTabs.map(tab => ({
+            id: tab.id,
+            title: tab.title,
+            url: tab.url
+          })),
+          reason: `${domainTabs.length} tabs from ${domain}`
+        };
+      }
+    });
+    
+    // Group by similar keywords in titles
+    const keywordGroups = {};
+    tabs.forEach(tab => {
+      const words = tab.title.toLowerCase().split(/\s+/).filter(word => word.length > 3);
+      words.forEach(word => {
+        if (!keywordGroups[word]) {
+          keywordGroups[word] = [];
+        }
+        keywordGroups[word].push(tab);
+      });
+    });
+    
+    // Create suggestions for keyword groups with multiple tabs
+    Object.entries(keywordGroups).forEach(([keyword, keywordTabs]) => {
+      if (keywordTabs.length > 2) {
+        suggestions[`keyword-${keyword}`] = {
+          type: 'keyword',
+          name: keyword,
+          tabs: keywordTabs.map(tab => ({
+            id: tab.id,
+            title: tab.title,
+            url: tab.url
+          })),
+          reason: `${keywordTabs.length} tabs containing "${keyword}"`
+        };
+      }
+    });
+    
+    groupSuggestions = suggestions;
+    console.log(`Generated group suggestions (attempt ${retryCount + 1}):`, Object.keys(suggestions).length, 'groups');
+    console.log('Group suggestions:', suggestions);
+    await chrome.storage.local.set({ groupSuggestions: groupSuggestions });
+    
+  } catch (error) {
+    if (retryCount < maxRetries - 1) {
+      console.error(`Error analyzing tab groupings (attempt ${retryCount + 1}):`, error);
+      console.log(`Retrying in 1 second... (${retryCount + 2}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+      return await analyzeTabGroupings(retryCount + 1);
+    } else {
+      console.error('Failed to analyze tab groupings after 3 attempts:', error);
+      console.log('Giving up on group suggestions generation');
+      // Set empty suggestions to avoid infinite retries
+      groupSuggestions = {};
+      await chrome.storage.local.set({ groupSuggestions: groupSuggestions });
     }
-  });
-  
-  groupSuggestions = suggestions;
-  await chrome.storage.local.set({ groupSuggestions: groupSuggestions });
+  }
 }
 
 // Handle notification clicks
@@ -342,6 +377,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
       
       if (request.action === 'getGroupSuggestions') {
+        // If no suggestions exist yet, analyze tabs first
+        if (Object.keys(groupSuggestions).length === 0) {
+          console.log('No group suggestions exist, analyzing tabs...');
+          await analyzeTabGroupings();
+        }
         sendResponse({ groupSuggestions: groupSuggestions });
       }
       
