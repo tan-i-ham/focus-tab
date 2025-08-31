@@ -168,9 +168,15 @@ async function analyzeTabGroupings(retryCount = 0) {
       }
     }
     
-    // Group by domain
+    // Filter out tabs that are already in groups
+    const ungroupedTabs = tabs.filter(tab => tab.groupId === chrome.tabGroups.TAB_GROUP_ID_NONE);
+    const groupedTabsCount = tabs.length - ungroupedTabs.length;
+    
+    console.log(`Total tabs: ${tabs.length}, Ungrouped tabs: ${ungroupedTabs.length}, Already grouped: ${groupedTabsCount}`);
+    
+    // Group by domain (only ungrouped tabs)
     const domainGroups = {};
-    tabs.forEach(tab => {
+    ungroupedTabs.forEach(tab => {
       try {
         const url = new URL(tab.url);
         const domain = url.hostname;
@@ -199,9 +205,9 @@ async function analyzeTabGroupings(retryCount = 0) {
       }
     });
     
-    // Group by similar keywords in titles
+    // Group by similar keywords in titles (only ungrouped tabs)
     const keywordGroups = {};
-    tabs.forEach(tab => {
+    ungroupedTabs.forEach(tab => {
       const words = tab.title.toLowerCase().split(/\s+/).filter(word => word.length > 3);
       words.forEach(word => {
         if (!keywordGroups[word]) {
