@@ -1,13 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Focus Tab - Smart Tab Manager",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Alerts users about inactive tabs and suggests grouping related tabs to reduce distractions",
   "permissions": [
     "tabs",
     "storage",
-    "alarms",
-    "notifications",
     "activeTab"
   ],
   "background": {

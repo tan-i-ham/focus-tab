@@ -248,12 +248,6 @@ async function analyzeTabGroupings(retryCount = 0) {
   }
 }
 
-// Handle notification clicks
-chrome.notifications.onClicked.addListener((notificationId) => {
-  if (notificationId === 'inactiveTabs') {
-    chrome.action.openPopup();
-  }
-});
 
 // Handle messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
