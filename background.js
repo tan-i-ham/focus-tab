@@ -233,6 +233,55 @@ async function analyzeTabGroupings(retryCount = 0) {
       }
     });
     
+    // Group by title similarity using Levenshtein distance
+    const titleSimilarityGroups = {};
+    const processedTabs = new Set();
+    
+    ungroupedTabs.forEach((tab1, index1) => {
+      if (processedTabs.has(tab1.id)) return;
+      
+      const similarTabs = [tab1];
+      const title1 = tab1.title.toLowerCase().trim();
+      
+      ungroupedTabs.forEach((tab2, index2) => {
+        if (index1 >= index2 || processedTabs.has(tab2.id)) return;
+        
+        const title2 = tab2.title.toLowerCase().trim();
+        const similarity = calculateTitleSimilarity(title1, title2);
+        
+        // If similarity is above threshold (70%), consider them similar
+        if (similarity >= 0.7) {
+          similarTabs.push(tab2);
+          processedTabs.add(tab2.id);
+        }
+      });
+      
+      if (similarTabs.length > 1) {
+        // Create a meaningful group name from the most common words
+        const groupName = extractCommonTitlePattern(similarTabs.map(tab => tab.title));
+        const groupKey = `title-similarity-${groupName.toLowerCase().replace(/\s+/g, '-')}`;
+        
+        // Avoid duplicating with existing keyword groups
+        if (!suggestions[groupKey]) {
+          titleSimilarityGroups[groupKey] = {
+            type: 'title-similarity',
+            name: groupName,
+            tabs: similarTabs.map(tab => ({
+              id: tab.id,
+              title: tab.title,
+              url: tab.url
+            })),
+            reason: `${similarTabs.length} tabs with similar titles`
+          };
+        }
+      }
+      
+      processedTabs.add(tab1.id);
+    });
+    
+    // Add title similarity suggestions to main suggestions
+    Object.assign(suggestions, titleSimilarityGroups);
+    
     groupSuggestions = suggestions;
     console.log(`Generated group suggestions (attempt ${retryCount + 1}):`, Object.keys(suggestions).length, 'groups');
     console.log('Group suggestions:', suggestions);
@@ -359,3 +408,127 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   
   return true; // Keep message channel open for async response
 });
+
+// Helper function to calculate title similarity using Levenshtein distance
+function calculateTitleSimilarity(str1, str2) {
+  if (str1 === str2) return 1.0;
+  if (str1.length === 0 || str2.length === 0) return 0.0;
+  
+  // Normalize strings - remove common prefixes/suffixes that don't add meaning
+  const normalize = (str) => {
+    return str
+      .toLowerCase()
+      .replace(/^\s*(new tab|untitled|loading)\s*[-–—]?\s*/i, '') // Remove common prefixes
+      .replace(/\s*[-–—]\s*(google chrome|mozilla firefox|safari|edge)\s*$/i, '') // Remove browser names
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+  };
+  
+  const normalizedStr1 = normalize(str1);
+  const normalizedStr2 = normalize(str2);
+  
+  // Use simpler word-based comparison for better results
+  const words1 = normalizedStr1.split(/\s+/).filter(word => word.length > 2);
+  const words2 = normalizedStr2.split(/\s+/).filter(word => word.length > 2);
+  
+  if (words1.length === 0 && words2.length === 0) return 1.0;
+  if (words1.length === 0 || words2.length === 0) return 0.0;
+  
+  // Calculate Jaccard similarity (intersection over union)
+  const set1 = new Set(words1);
+  const set2 = new Set(words2);
+  const intersection = new Set([...set1].filter(x => set2.has(x)));
+  const union = new Set([...set1, ...set2]);
+  
+  return intersection.size / union.size;
+}
+
+// Helper function to extract common pattern from similar titles
+function extractCommonTitlePattern(titles) {
+  if (titles.length === 0) return 'Similar Pages';
+  if (titles.length === 1) return titles[0];
+  
+  // Find the most common meaningful words across all titles
+  const allWords = {};
+  titles.forEach(title => {
+    const words = title.toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // Remove punctuation
+      .split(/\s+/)
+      .filter(word => word.length > 3 && !isCommonWord(word)); // Filter meaningful words
+    
+    words.forEach(word => {
+      allWords[word] = (allWords[word] || 0) + 1;
+    });
+  });
+  
+  // Find words that appear in at least half of the titles
+  const threshold = Math.ceil(titles.length / 2);
+  const commonWords = Object.entries(allWords)
+    .filter(([word, count]) => count >= threshold)
+    .sort((a, b) => b[1] - a[1]) // Sort by frequency
+    .slice(0, 3) // Take top 3
+    .map(([word]) => word);
+  
+  if (commonWords.length > 0) {
+    return commonWords.map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  }
+  
+  // Fallback: use first few words of the most common title
+  const titleCounts = {};
+  titles.forEach(title => {
+    const firstWords = title.split(/\s+/).slice(0, 3).join(' ');
+    titleCounts[firstWords] = (titleCounts[firstWords] || 0) + 1;
+  });
+  
+  const mostCommon = Object.entries(titleCounts)
+    .sort((a, b) => b[1] - a[1])[0];
+  
+  return mostCommon ? mostCommon[0] : 'Similar Pages';
+}
+
+// Helper function to check if a word is too common to be meaningful
+function isCommonWord(word) {
+  const commonWords = new Set([
+    'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our',
+    'had', 'have', 'what', 'were', 'said', 'each', 'which', 'she', 'how', 'other', 'many', 'some',
+    'time', 'very', 'when', 'much', 'new', 'write', 'would', 'there', 'way', 'been', 'call',
+    'who', 'oil', 'sit', 'now', 'find', 'down', 'day', 'did', 'get', 'come', 'made', 'may', 'part',
+    'over', 'such', 'take', 'than', 'only', 'think', 'work', 'know', 'place', 'years', 'back',
+    'good', 'give', 'man', 'our', 'under', 'name', 'very', 'through', 'just', 'form', 'sentence',
+    'great', 'where', 'help', 'much', 'too', 'mean', 'old', 'any', 'same', 'tell', 'boy', 'follow',
+    'came', 'want', 'show', 'also', 'around', 'farm', 'three', 'small', 'set', 'put', 'end', 'why',
+    'again', 'turn', 'here', 'off', 'went', 'old', 'number', 'great', 'tell', 'men', 'say', 'small',
+    'every', 'found', 'still', 'between', 'mane', 'should', 'home', 'big', 'give', 'air', 'line',
+    'set', 'own', 'under', 'read', 'last', 'never', 'us', 'left', 'end', 'along', 'while', 'might',
+    'next', 'sound', 'below', 'saw', 'something', 'thought', 'both', 'few', 'those', 'always',
+    'looked', 'show', 'large', 'often', 'together', 'asked', 'house', 'don', 'world', 'going',
+    'want', 'school', 'important', 'until', 'form', 'food', 'keep', 'children', 'feet', 'land',
+    'side', 'without', 'boy', 'once', 'animal', 'life', 'enough', 'took', 'four', 'head', 'above',
+    'kind', 'began', 'almost', 'live', 'page', 'got', 'earth', 'need', 'far', 'hand', 'high',
+    'year', 'mother', 'light', 'country', 'father', 'let', 'night', 'picture', 'being', 'study',
+    'second', 'book', 'carry', 'took', 'science', 'eat', 'room', 'friend', 'began', 'idea', 'fish',
+    'mountain', 'north', 'once', 'base', 'hear', 'horse', 'cut', 'sure', 'watch', 'color', 'face',
+    'wood', 'main', 'enough', 'plain', 'girl', 'usual', 'young', 'ready', 'above', 'ever', 'red',
+    'list', 'though', 'feel', 'talk', 'bird', 'soon', 'body', 'dog', 'family', 'direct', 'pose',
+    'leave', 'song', 'measure', 'door', 'product', 'black', 'short', 'numeral', 'class', 'wind',
+    'question', 'happen', 'complete', 'ship', 'area', 'half', 'rock', 'order', 'fire', 'south',
+    'problem', 'piece', 'told', 'knew', 'pass', 'since', 'top', 'whole', 'king', 'space', 'heard',
+    'best', 'hour', 'better', 'during', 'hundred', 'five', 'remember', 'step', 'early', 'hold',
+    'west', 'ground', 'interest', 'reach', 'fast', 'verb', 'sing', 'listen', 'six', 'table',
+    'travel', 'less', 'morning', 'ten', 'simple', 'several', 'vowel', 'toward', 'war', 'lay',
+    'against', 'pattern', 'slow', 'center', 'love', 'person', 'money', 'serve', 'appear', 'road',
+    'map', 'rain', 'rule', 'govern', 'pull', 'cold', 'notice', 'voice', 'unit', 'power', 'town',
+    'fine', 'certain', 'fly', 'fall', 'lead', 'cry', 'dark', 'machine', 'note', 'wait', 'plan',
+    'figure', 'star', 'box', 'noun', 'field', 'rest', 'correct', 'able', 'pound', 'done', 'beauty',
+    'drive', 'stood', 'contain', 'front', 'teach', 'week', 'final', 'gave', 'green', 'oh', 'quick',
+    'develop', 'ocean', 'warm', 'free', 'minute', 'strong', 'special', 'mind', 'behind', 'clear',
+    'tail', 'produce', 'fact', 'street', 'inch', 'multiply', 'nothing', 'course', 'stay', 'wheel',
+    'full', 'force', 'blue', 'object', 'decide', 'surface', 'deep', 'moon', 'island', 'foot',
+    'system', 'busy', 'test', 'record', 'boat', 'common', 'gold', 'possible', 'plane', 'stead',
+    'dry', 'wonder', 'laugh', 'thousands', 'ago', 'ran', 'check', 'game', 'shape', 'equate', 'hot',
+    'miss', 'brought', 'heat', 'snow', 'tire', 'bring', 'yes', 'distant', 'fill', 'east', 'paint',
+    'language', 'among'
+  ]);
+  
+  return commonWords.has(word.toLowerCase());
+}
