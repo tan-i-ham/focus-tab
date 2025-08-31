@@ -211,9 +211,9 @@ async function checkInactiveTabs() {
     // Show notification
     chrome.notifications.create('inactiveTabs', {
       type: 'basic',
-      iconUrl: 'icons/icon48.png',
+      iconUrl: 'icons/icon48.svg',
       title: 'Focus Tab Alert',
-      message: `${inactiveTabs.length} tab(s) haven't been accessed for 24+ hours. Click to review.`
+      message: `${inactiveTabs.length} tab(s) haven't been accessed for 1+ hours. Click to review.`
     });
     
     // Store inactive tabs for popup access

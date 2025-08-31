@@ -77,7 +77,7 @@ class TabCloserPopup {
       container.innerHTML = `
         <div class="empty-state">
           <h3>🎉 All tabs are active!</h3>
-          <p>No tabs have been inactive for 24+ hours.</p>
+          <p>No tabs have been inactive for 1+ hours.</p>
         </div>
       `;
       actions.style.display = 'none';

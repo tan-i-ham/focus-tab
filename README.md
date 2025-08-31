@@ -6,7 +6,7 @@ A Chrome extension that helps reduce distractions by alerting users about inacti
 
 ### 🚨 Inactive Tab Alerts
 - Tracks tab activity automatically
-- Alerts users about tabs that haven't been accessed for 24+ hours
+- Alerts users about tabs that haven't been accessed for 1+ hours
 - Shows browser notifications for easy tab management
 - Provides a clean interface to bulk close inactive tabs
 
@@ -36,7 +36,7 @@ The extension uses SVG icons by default. To convert to PNG format:
 
 ### Managing Inactive Tabs
 1. Click the Focus Tab icon in your toolbar
-2. View the "Inactive Tabs" section to see tabs not accessed for 24+ hours
+2. View the "Inactive Tabs" section to see tabs not accessed for 1+ hours
 3. Select individual tabs or use "Select All"
 4. Click "Close Selected" to remove inactive tabs
 
@@ -99,7 +99,7 @@ tab-closer/
 - Automatically cleans up data for closed tabs
 
 **Inactive Detection**
-- Configurable threshold (default: 24 hours)
+- Configurable threshold (default: 1+ hours)
 - Periodic checks using Chrome alarms API
 - Browser notifications for inactive tabs
 

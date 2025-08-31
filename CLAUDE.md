@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 This is a Chrome Manifest V3 extension called "Focus Tab - Smart Tab Manager" that helps users manage browser tabs by:
-- Tracking tab activity and alerting about inactive tabs (24+ hours)
+- Tracking tab activity and alerting about inactive tabs (1+ hours)
 - Suggesting intelligent tab groupings based on domain similarity and keyword analysis
 - Providing a popup interface for bulk tab management
 
@@ -34,8 +34,8 @@ The extension follows Chrome Manifest V3 architecture with three main components
 
 ## Key Constants and Configuration
 
-- `INACTIVE_THRESHOLD`: Currently set to 10 seconds for testing (should be 24 hours in production)
-- `CHECK_INTERVAL`: 1 minute for periodic inactive tab checks
+- `INACTIVE_THRESHOLD`: Currently set to 1 hour
+- `CHECK_INTERVAL`: 5 minutes for periodic inactive tab checks
 - Domain grouping requires 2+ tabs from same domain
 - Keyword grouping requires 3+ tabs with matching words (4+ characters)
 
