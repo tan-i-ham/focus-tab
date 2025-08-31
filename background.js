@@ -4,7 +4,6 @@ let groupSuggestions = {};
 
 // Constants
 const INACTIVE_THRESHOLD = 60 * 60 * 1000; // 60 minutes in milliseconds
-const CHECK_INTERVAL = 5; // Check every minute (in minutes)
 
 // Initialize extension
 chrome.runtime.onStartup.addListener(initializeExtension);
@@ -15,9 +14,6 @@ async function initializeExtension() {
   const result = await chrome.storage.local.get(['tabActivity', 'groupSuggestions', 'settings']);
   tabActivity = result.tabActivity || {};
   groupSuggestions = result.groupSuggestions || {};
-  
-  // Set up periodic alarm for checking inactive tabs
-  chrome.alarms.create('checkInactiveTabs', { periodInMinutes: CHECK_INTERVAL });
   
   // Track current tabs
   const tabs = await chrome.tabs.query({});
@@ -151,77 +147,7 @@ async function saveTabActivity() {
   });
 }
 
-// Handle periodic alarm for checking inactive tabs
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === 'checkInactiveTabs') {
-    await checkInactiveTabs();
-    await analyzeTabGroupings();
-  }
-});
 
-// Check for inactive tabs and notify user
-async function checkInactiveTabs() {
-  const currentTime = Date.now();
-  const inactiveTabs = [];
-  
-  // Get all current tabs
-  const tabs = await chrome.tabs.query({});
-  const currentTabIds = new Set(tabs.map(tab => tab.id));
-  
-  // Clean up activity data for closed tabs
-  Object.keys(tabActivity).forEach(tabId => {
-    if (!currentTabIds.has(parseInt(tabId))) {
-      delete tabActivity[tabId];
-    }
-  });
-  
-  // Find inactive tabs
-  for (const tab of tabs) {
-    const activity = tabActivity[tab.id];
-    if (activity) {
-      if ((currentTime - activity.lastAccess) > INACTIVE_THRESHOLD) {
-        inactiveTabs.push({
-          id: tab.id,
-          title: tab.title,
-          url: tab.url,
-          lastAccess: activity.lastAccess,
-          daysSinceAccess: Math.floor((currentTime - activity.lastAccess) / (24 * 60 * 60 * 1000))
-        });
-      }
-    } else {
-      // Tab without activity data - initialize with Chrome's lastAccessed if available
-      if (tab.lastAccessed) {
-        tabActivity[tab.id] = {
-          lastAccess: tab.lastAccessed,
-          url: tab.url,
-          title: tab.title,
-          created: tab.lastAccessed
-        };
-      } else {
-        // Skip tabs without lastAccessed data
-        continue;
-      }
-    }
-  }
-  
-  if (inactiveTabs.length > 0) {
-    // Sort tabs by last access time (oldest first)
-    inactiveTabs.sort((a, b) => a.lastAccess - b.lastAccess);
-    
-    // Show notification
-    chrome.notifications.create('inactiveTabs', {
-      type: 'basic',
-      iconUrl: 'icons/icon48.svg',
-      title: 'Focus Tab Alert',
-      message: `${inactiveTabs.length} tab(s) haven't been accessed for 1+ hours. Click to review.`
-    });
-    
-    // Store inactive tabs for popup access
-    await chrome.storage.local.set({ inactiveTabs: inactiveTabs });
-  }
-  
-  await saveTabActivity();
-}
 
 // Analyze tabs for potential groupings with retry mechanism
 async function analyzeTabGroupings(retryCount = 0) {
