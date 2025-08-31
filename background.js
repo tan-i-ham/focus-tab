@@ -3,8 +3,8 @@ let tabActivity = {};
 let groupSuggestions = {};
 
 // Constants
-const INACTIVE_THRESHOLD = 600 * 1000; // 10 minutes in milliseconds (for testing)
-const CHECK_INTERVAL = 1; // Check every minute (in minutes)
+const INACTIVE_THRESHOLD = 60 * 60 * 1000; // 60 minutes in milliseconds
+const CHECK_INTERVAL = 5; // Check every minute (in minutes)
 
 // Initialize extension
 chrome.runtime.onStartup.addListener(initializeExtension);
@@ -29,21 +29,43 @@ async function initializeExtension() {
   
   tabs.forEach(tab => {
     if (!tabActivity[tab.id]) {
-      // Only set current time for the currently active tab
-      // For all other tabs, set a stale time that will make them appear inactive
-      const lastAccessTime = tab.id === activeTabId ? currentTime : tab.lastAccessed; // 2 hours ago
-
+      // Only initialize tabs that are currently active or have lastAccessed data from Chrome
+      if (tab.id === activeTabId) {
+        tabActivity[tab.id] = {
+          lastAccess: currentTime,
+          url: tab.url,
+          title: tab.title,
+          created: currentTime
+        };
+        console.log(`Initialized active tab ${tab.id} as recently accessed`);
+      } else if (tab.lastAccessed) {
+        tabActivity[tab.id] = {
+          lastAccess: tab.lastAccessed,
+          url: tab.url,
+          title: tab.title,
+          created: tab.lastAccessed
+        };
+        console.log(`Initialized tab ${tab.id} with Chrome's lastAccessed time: ${new Date(tab.lastAccessed).toISOString()}`);
+      } else {
+        // Skip tabs without lastAccessed data - they will be tracked when user interacts with them
+        console.log(`Skipping tab ${tab.id} - no lastAccessed data available`);
+      }
+    } else {
+      // Tab already has activity data - only update URL and title if they changed, but preserve timestamps
+      const existingActivity = tabActivity[tab.id];
       tabActivity[tab.id] = {
-        lastAccess: lastAccessTime,
+        lastAccess: existingActivity.lastAccess, // Preserve existing timestamp
         url: tab.url,
         title: tab.title,
-        created: currentTime
+        created: existingActivity.created // Preserve existing creation time
       };
       
+      // Only update lastAccess if this is the currently active tab
       if (tab.id === activeTabId) {
-        console.log(`Initialized active tab ${tab.id} as recently accessed`);
+        tabActivity[tab.id].lastAccess = currentTime;
+        console.log(`Updated active tab ${tab.id} access time on extension reload`);
       } else {
-        console.log(`Initialized tab ${tab.id} with stale access time (2 hours ago)`);
+        console.log(`Preserved existing access time for tab ${tab.id} on extension reload`);
       }
     }
   });
@@ -167,14 +189,18 @@ async function checkInactiveTabs() {
         });
       }
     } else {
-      // Tab without activity data - initialize with stale time (will be inactive)
-      const staleTime = currentTime - (2 * 60 * 60 * 1000); // 2 hours ago
-      tabActivity[tab.id] = {
-        lastAccess: staleTime,
-        url: tab.url,
-        title: tab.title,
-        created: currentTime
-      };
+      // Tab without activity data - initialize with Chrome's lastAccessed if available
+      if (tab.lastAccessed) {
+        tabActivity[tab.id] = {
+          lastAccess: tab.lastAccessed,
+          url: tab.url,
+          title: tab.title,
+          created: tab.lastAccessed
+        };
+      } else {
+        // Skip tabs without lastAccessed data
+        continue;
+      }
     }
   }
   
@@ -356,14 +382,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               });
             }
           } else {
-            // Tab without activity data - initialize with stale time since we don't know when it was last accessed
-            const staleTime = currentTime - (2 * 60 * 60 * 1000); // 2 hours ago
-            tabActivity[tab.id] = {
-              lastAccess: staleTime,
-              url: tab.url,
-              title: tab.title,
-              created: currentTime
-            };
+            // Tab without activity data - initialize with Chrome's lastAccessed if available
+            if (tab.lastAccessed) {
+              tabActivity[tab.id] = {
+                lastAccess: tab.lastAccessed,
+                url: tab.url,
+                title: tab.title,
+                created: tab.lastAccessed
+              };
+            }
+            // Skip tabs without lastAccessed data - they won't be counted as inactive
           }
         }
         
