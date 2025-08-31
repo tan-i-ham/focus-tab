@@ -175,7 +175,7 @@ class TabCloserPopup {
             <button class="btn btn-danger close-all-btn" data-tab-ids="[${suggestion.tabs.map(t => t.id).join(',')}]">
               Close All Tabs
             </button>
-            <button class="btn btn-primary" onclick="tabCloserPopup.groupTabs('${suggestion.name}', [${suggestion.tabs.map(t => t.id).join(',')}])">
+            <button class="btn btn-primary group-tabs-btn" data-group-name="${this.escapeHtml(suggestion.name)}" data-tab-ids="[${suggestion.tabs.map(t => t.id).join(',')}]">
               Group These Tabs
             </button>
           </div>
@@ -204,6 +204,16 @@ class TabCloserPopup {
         const tabIdsStr = buttonElement.dataset.tabIds;
         const tabIds = JSON.parse(tabIdsStr);
         this.closeAllTabsInGroup(tabIds);
+      });
+    });
+
+    // Add event listeners for group tabs buttons
+    container.querySelectorAll('.group-tabs-btn').forEach(buttonElement => {
+      buttonElement.addEventListener('click', () => {
+        const groupName = buttonElement.dataset.groupName;
+        const tabIdsStr = buttonElement.dataset.tabIds;
+        const tabIds = JSON.parse(tabIdsStr);
+        this.groupTabs(groupName, tabIds);
       });
     });
 
