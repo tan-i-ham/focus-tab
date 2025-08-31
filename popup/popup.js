@@ -55,10 +55,13 @@ class TabCloserPopup {
       // Load inactive tabs
       const inactiveResponse = await this.sendMessage({ action: 'getInactiveTabs' });
       this.inactiveTabs = (inactiveResponse && inactiveResponse.inactiveTabs) || [];
+      console.log('Loaded inactive tabs:', this.inactiveTabs.length, 'tabs');
 
       // Load group suggestions
       const groupResponse = await this.sendMessage({ action: 'getGroupSuggestions' });
       this.groupSuggestions = (groupResponse && groupResponse.groupSuggestions) || {};
+      console.log('Loaded group suggestions:', Object.keys(this.groupSuggestions).length, 'groups');
+      console.log('Group suggestions data:', this.groupSuggestions);
     } catch (error) {
       console.error('Failed to load data:', error);
       this.inactiveTabs = [];
@@ -169,6 +172,9 @@ class TabCloserPopup {
             </div>
           `).join('')}
           <div class="group-actions">
+            <button class="btn btn-danger close-all-btn" data-tab-ids="[${suggestion.tabs.map(t => t.id).join(',')}]">
+              Close All Tabs
+            </button>
             <button class="btn btn-primary" onclick="tabCloserPopup.groupTabs('${suggestion.name}', [${suggestion.tabs.map(t => t.id).join(',')}])">
               Group These Tabs
             </button>
@@ -189,6 +195,15 @@ class TabCloserPopup {
         if (dropdownArrow) {
           dropdownArrow.classList.toggle('expanded');
         }
+      });
+    });
+
+    // Add event listeners for close all tabs buttons
+    container.querySelectorAll('.close-all-btn').forEach(buttonElement => {
+      buttonElement.addEventListener('click', () => {
+        const tabIdsStr = buttonElement.dataset.tabIds;
+        const tabIds = JSON.parse(tabIdsStr);
+        this.closeAllTabsInGroup(tabIds);
       });
     });
 
@@ -266,6 +281,28 @@ class TabCloserPopup {
       window.close();
     } catch (error) {
       console.error('Failed to switch to tab:', error);
+    }
+  }
+
+  async closeAllTabsInGroup(tabIds) {
+    if (tabIds.length === 0) return;
+
+    try {
+      await this.sendMessage({ action: 'closeTabs', tabIds: tabIds });
+      
+      // Remove the group suggestion from the list after closing
+      this.groupSuggestions = Object.fromEntries(
+        Object.entries(this.groupSuggestions).filter(([key, suggestion]) => 
+          !suggestion.tabs.every(tab => tabIds.includes(tab.id))
+        )
+      );
+      
+      // Re-render group suggestions
+      this.renderGroupSuggestions();
+      this.updateStats();
+      
+    } catch (error) {
+      console.error('Failed to close tabs in group:', error);
     }
   }
 
