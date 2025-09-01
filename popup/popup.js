@@ -10,10 +10,21 @@ class TabCloserPopup {
 
   async init() {
     this.setupEventListeners();
+    this.showLoadingState();
     await this.loadData();
+    this.hideLoadingState();
     this.renderInactiveTabs();
     this.renderGroupSuggestions();
     this.updateStats();
+  }
+
+  showLoadingState() {
+    document.getElementById('inactive-tabs-list').innerHTML = '<div class="loading">Loading inactive tabs...</div>';
+    document.getElementById('group-suggestions-list').innerHTML = '<div class="loading">Loading group suggestions...</div>';
+  }
+
+  hideLoadingState() {
+    // Loading indicators will be replaced by render methods
   }
 
   setupEventListeners() {
@@ -50,22 +61,41 @@ class TabCloserPopup {
     document.getElementById(`${tabName}-panel`).classList.add('active');
   }
 
-  async loadData() {
+  async loadData(retryCount = 0) {
+    const maxRetries = 3;
+    
     try {
-      // Load inactive tabs
-      const inactiveResponse = await this.sendMessage({ action: 'getInactiveTabs' });
+      console.log(`Loading data (attempt ${retryCount + 1}/${maxRetries})...`);
+      
+      // Load inactive tabs with timeout
+      const inactiveResponse = await Promise.race([
+        this.sendMessage({ action: 'getInactiveTabs' }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+      ]);
       this.inactiveTabs = (inactiveResponse && inactiveResponse.inactiveTabs) || [];
       console.log('Loaded inactive tabs:', this.inactiveTabs.length, 'tabs');
 
-      // Load group suggestions
-      const groupResponse = await this.sendMessage({ action: 'getGroupSuggestions' });
+      // Load group suggestions with timeout
+      const groupResponse = await Promise.race([
+        this.sendMessage({ action: 'getGroupSuggestions' }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+      ]);
       this.groupSuggestions = (groupResponse && groupResponse.groupSuggestions) || {};
       console.log('Loaded group suggestions:', Object.keys(this.groupSuggestions).length, 'groups');
       console.log('Group suggestions data:', this.groupSuggestions);
+      
     } catch (error) {
-      console.error('Failed to load data:', error);
-      this.inactiveTabs = [];
-      this.groupSuggestions = {};
+      console.error(`Failed to load data (attempt ${retryCount + 1}):`, error);
+      
+      if (retryCount < maxRetries - 1) {
+        console.log(`Retrying in ${(retryCount + 1) * 500}ms...`);
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 500));
+        return await this.loadData(retryCount + 1);
+      } else {
+        console.error('All retry attempts failed, using empty data');
+        this.inactiveTabs = [];
+        this.groupSuggestions = {};
+      }
     }
   }
 
@@ -407,8 +437,20 @@ class TabCloserPopup {
   }
 
   sendMessage(message) {
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage(message, resolve);
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Chrome runtime error:', chrome.runtime.lastError);
+          reject(chrome.runtime.lastError);
+          return;
+        }
+        if (response && response.error) {
+          console.error('Background script error:', response.error);
+          reject(new Error(response.error));
+          return;
+        }
+        resolve(response);
+      });
     });
   }
 }

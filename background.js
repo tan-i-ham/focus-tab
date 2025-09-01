@@ -1,6 +1,8 @@
 // Service worker for Focus Tab extension
 let tabActivity = {};
 let groupSuggestions = {};
+let isInitialized = false;
+let initializationPromise = null;
 
 // Constants
 const INACTIVE_THRESHOLD = 60 * 60 * 1000; // 60 minutes in milliseconds
@@ -10,10 +12,26 @@ chrome.runtime.onStartup.addListener(initializeExtension);
 chrome.runtime.onInstalled.addListener(initializeExtension);
 
 async function initializeExtension() {
-  // Load existing tab activity data
-  const result = await chrome.storage.local.get(['tabActivity', 'groupSuggestions', 'settings']);
-  tabActivity = result.tabActivity || {};
-  groupSuggestions = result.groupSuggestions || {};
+  // Prevent multiple simultaneous initializations
+  if (initializationPromise) {
+    return await initializationPromise;
+  }
+  
+  initializationPromise = performInitialization();
+  return await initializationPromise;
+}
+
+async function performInitialization() {
+  try {
+    console.log('Starting extension initialization...');
+    isInitialized = false;
+    
+    // Load existing tab activity data
+    const result = await chrome.storage.local.get(['tabActivity', 'groupSuggestions', 'settings']);
+    tabActivity = result.tabActivity || {};
+    groupSuggestions = result.groupSuggestions || {};
+    
+    console.log(`Loaded ${Object.keys(tabActivity).length} tab activities from storage`);
   
   // Track current tabs
   const tabs = await chrome.tabs.query({});
@@ -71,7 +89,14 @@ async function initializeExtension() {
   // Generate initial group suggestions
   await analyzeTabGroupings();
   
-  console.log('Focus Tab extension initialized');
+    console.log('Focus Tab extension initialized successfully');
+    isInitialized = true;
+    
+  } catch (error) {
+    console.error('Extension initialization failed:', error);
+    isInitialized = false;
+    throw error;
+  }
 }
 
 // Tab event listeners for activity tracking
@@ -259,6 +284,12 @@ async function analyzeTabGroupings(retryCount = 0) {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   (async () => {
     try {
+      // Ensure extension is fully initialized before handling requests
+      if (!isInitialized) {
+        console.log('Extension not initialized, waiting...');
+        await initializeExtension();
+        console.log('Initialization complete, processing request');
+      }
       if (request.action === 'closeTabs') {
         const tabIds = request.tabIds;
         for (const tabId of tabIds) {
