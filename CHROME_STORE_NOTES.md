@@ -4,6 +4,15 @@ This file contains formatted release notes specifically for Chrome Web Store sub
 
 ---
 
+## Version 0.3.0 - Maintenance & Documentation Update
+
+🔧 **MAINTENANCE:**
+• Removed svg icons due to Chrome Web Store installation issues
+
+**Keywords:** tab management, productivity, browser extension, maintenance update, version control
+
+---
+
 ## Version 0.2.0 - Enhanced Tab Grouping & Management
 
 🚀 **NEW FEATURES:**
