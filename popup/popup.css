@@ -154,11 +154,13 @@ body {
   display: flex;
   align-items: center;
   margin-bottom: 6px;
+  padding-right: 60px; /* Add space for the badge */
 }
 
 .tab-checkbox {
   margin-right: 8px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .tab-title {
@@ -169,6 +171,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0; /* Allow text to shrink properly */
 }
 
 .tab-url {
