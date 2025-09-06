@@ -162,6 +162,31 @@ class TabCloserPopup {
         this.switchToTab(tabId);
       });
     });
+
+    // Add click handler for tab items to toggle selection
+    container.querySelectorAll('.tab-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        // Don't handle if clicking on "Go to tab" button
+        if (e.target.closest('.goto-tab-btn')) return;
+        
+        const tabId = parseInt(item.dataset.tabId);
+        const checkbox = item.querySelector('.tab-checkbox');
+        
+        // Toggle checkbox state
+        checkbox.checked = !checkbox.checked;
+        
+        // Update selection state
+        if (checkbox.checked) {
+          this.selectedTabs.add(tabId);
+          item.classList.add('selected');
+        } else {
+          this.selectedTabs.delete(tabId);
+          item.classList.remove('selected');
+        }
+        
+        this.updateSelectAllButton();
+      });
+    });
   }
 
   renderGroupSuggestions() {
