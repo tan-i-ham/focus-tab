@@ -118,6 +118,9 @@ class TabCloserPopup {
 
     container.innerHTML = this.inactiveTabs.map(tab => `
       <div class="tab-item" data-tab-id="${tab.id}">
+        <span class="days-inactive-badge ${this.getInactiveCriticalClass(tab)}">
+          ${this.formatInactiveDuration(tab)}
+        </span>
         <div class="tab-header">
           <input type="checkbox" class="tab-checkbox" data-tab-id="${tab.id}">
           <div class="tab-title" title="${this.escapeHtml(tab.title)}">
@@ -129,14 +132,14 @@ class TabCloserPopup {
         </div>
         <div class="tab-meta">
           <span>Last accessed: ${this.formatTimeAgo(tab.lastAccess)}</span>
-          <span class="days-inactive ${this.getInactiveCriticalClass(tab)}">
-            ${this.formatInactiveDuration(tab)}
-          </span>
+          <button class="goto-tab-btn" data-tab-id="${tab.id}" title="Go to tab">
+            <span class="goto-icon">↗</span> Go to tab
+          </button>
         </div>
       </div>
     `).join('');
 
-    // Add event listeners for checkboxes and tab items
+    // Add event listeners for checkboxes
     container.querySelectorAll('.tab-checkbox').forEach(checkbox => {
       checkbox.addEventListener('change', (e) => {
         const tabId = parseInt(e.target.dataset.tabId);
@@ -151,14 +154,11 @@ class TabCloserPopup {
       });
     });
 
-    // Add click handler for tab items
-    container.querySelectorAll('.tab-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        // If clicking on checkbox, handle selection
-        if (e.target.type === 'checkbox') return;
-        
-        // If clicking elsewhere, switch to the tab
-        const tabId = parseInt(item.dataset.tabId);
+    // Add event listeners for "Go to tab" buttons
+    container.querySelectorAll('.goto-tab-btn').forEach(button => {
+      button.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tabId = parseInt(e.target.closest('.goto-tab-btn').dataset.tabId);
         this.switchToTab(tabId);
       });
     });
