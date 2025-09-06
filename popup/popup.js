@@ -225,6 +225,7 @@ class TabCloserPopup {
         if (this.currentPage > 1) {
           this.currentPage--;
           this.renderInactiveTabs();
+          this.scrollToFirstTab();
         }
       });
     }
@@ -235,6 +236,7 @@ class TabCloserPopup {
         if (this.currentPage < totalPages) {
           this.currentPage++;
           this.renderInactiveTabs();
+          this.scrollToFirstTab();
         }
       });
     }
@@ -361,6 +363,18 @@ class TabCloserPopup {
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
     return this.inactiveTabs.slice(startIndex, endIndex);
+  }
+
+  scrollToFirstTab() {
+    // Scroll to the first tab item or the top of the tabs list
+    const firstTabItem = document.querySelector('#inactive-tabs-list .tab-item');
+    const tabsList = document.getElementById('inactive-tabs-list');
+    
+    if (firstTabItem) {
+      firstTabItem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (tabsList) {
+      tabsList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   updateSelectAllButton() {
