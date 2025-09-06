@@ -5,6 +5,20 @@ All notable changes to Focus Tab - Smart Tab Manager will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-09-06
+
+### Added
+- **Improved Tab Selection**: Redesigned tab item layout with dedicated "Go to tab" buttons to prevent accidental navigation
+- **Smart Tab Controls**: Users can now select tabs by clicking anywhere on the tab item or using the checkbox
+
+### Enhanced
+- **Tab Item Layout**: Reorganized tab items with inactive duration badges in top-right corner for better visibility
+- **User Interface**: Moved tab statistics summary to appear after tab list for better information hierarchy
+- **Interaction Design**: Separated tab navigation from tab selection to reduce user errors
+- **Visual Feedback**: Enhanced hover states and button styling for clearer user interactions
+
+---
+
 ## [0.3.0] - 2025-09-05
 
 ### Enhanced

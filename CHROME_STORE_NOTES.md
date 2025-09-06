@@ -4,6 +4,24 @@ This file contains formatted release notes specifically for Chrome Web Store sub
 
 ---
 
+## Version 0.4.0 - Enhanced User Interface
+
+🚀 **NEW FEATURES:**
+• Dedicated "Go to tab" buttons prevent accidental navigation when selecting tabs for closure
+• Enhanced tab selection - click anywhere on a tab item OR use the checkbox to select it
+
+✨ **IMPROVEMENTS:**
+• Redesigned tab layout with inactive duration badges prominently displayed in top-right corner
+• Moved tab statistics to appear after the tab list for more intuitive information flow
+• Separated tab navigation from tab selection controls to reduce user errors and confusion
+• Enhanced visual feedback with improved hover states and clearer button styling
+
+This update significantly improves the user experience for managing large numbers of inactive tabs.
+
+**Keywords:** tab management, productivity, pagination, user interface, browser extension, inactive tabs, tab organization
+
+---
+
 ## Version 0.3.0 - Maintenance & Documentation Update
 
 🔧 **MAINTENANCE:**
