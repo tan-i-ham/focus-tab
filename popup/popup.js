@@ -5,6 +5,8 @@ class TabCloserPopup {
     this.selectedTabs = new Set();
     this.inactiveTabs = [];
     this.groupSuggestions = {};
+    this.currentPage = 1;
+    this.itemsPerPage = 10;
     this.init();
   }
 
@@ -116,7 +118,13 @@ class TabCloserPopup {
 
     actions.style.display = 'block';
 
-    container.innerHTML = this.inactiveTabs.map(tab => `
+    // Calculate pagination
+    const totalPages = Math.ceil(this.inactiveTabs.length / this.itemsPerPage);
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    const currentPageTabs = this.inactiveTabs.slice(startIndex, endIndex);
+
+    const tabItemsHTML = currentPageTabs.map(tab => `
       <div class="tab-item" data-tab-id="${tab.id}">
         <span class="days-inactive-badge ${this.getInactiveCriticalClass(tab)}">
           ${this.formatInactiveDuration(tab)}
@@ -138,6 +146,26 @@ class TabCloserPopup {
         </div>
       </div>
     `).join('');
+
+    // Render pagination controls if needed
+    let paginationHTML = '';
+    if (this.inactiveTabs.length > this.itemsPerPage) {
+      paginationHTML = `
+        <div class="pagination-controls">
+          <button id="prev-page" class="btn btn-secondary" ${this.currentPage === 1 ? 'disabled' : ''}>
+            ← Previous
+          </button>
+          <span class="pagination-info">
+            Page ${this.currentPage} of ${totalPages} (${this.inactiveTabs.length} tabs)
+          </span>
+          <button id="next-page" class="btn btn-secondary" ${this.currentPage === totalPages ? 'disabled' : ''}>
+            Next →
+          </button>
+        </div>
+      `;
+    }
+
+    container.innerHTML = tabItemsHTML + paginationHTML;
 
     // Add event listeners for checkboxes
     container.querySelectorAll('.tab-checkbox').forEach(checkbox => {
@@ -187,6 +215,29 @@ class TabCloserPopup {
         this.updateSelectAllButton();
       });
     });
+
+    // Add pagination event listeners
+    const prevBtn = document.getElementById('prev-page');
+    const nextBtn = document.getElementById('next-page');
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (this.currentPage > 1) {
+          this.currentPage--;
+          this.renderInactiveTabs();
+        }
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        const totalPages = Math.ceil(this.inactiveTabs.length / this.itemsPerPage);
+        if (this.currentPage < totalPages) {
+          this.currentPage++;
+          this.renderInactiveTabs();
+        }
+      });
+    }
   }
 
   renderGroupSuggestions() {
@@ -283,18 +334,20 @@ class TabCloserPopup {
 
   toggleSelectAllInactive() {
     const checkboxes = document.querySelectorAll('#inactive-tabs-list .tab-checkbox');
-    const allSelected = this.selectedTabs.size === this.inactiveTabs.length;
+    const currentPageTabs = this.getCurrentPageTabs();
+    const currentPageTabIds = new Set(currentPageTabs.map(tab => tab.id));
+    const allCurrentPageSelected = currentPageTabs.every(tab => this.selectedTabs.has(tab.id));
 
-    if (allSelected) {
-      // Deselect all
-      this.selectedTabs.clear();
+    if (allCurrentPageSelected) {
+      // Deselect all on current page
+      currentPageTabs.forEach(tab => this.selectedTabs.delete(tab.id));
       checkboxes.forEach(checkbox => {
         checkbox.checked = false;
         checkbox.closest('.tab-item').classList.remove('selected');
       });
     } else {
-      // Select all
-      this.inactiveTabs.forEach(tab => this.selectedTabs.add(tab.id));
+      // Select all on current page
+      currentPageTabs.forEach(tab => this.selectedTabs.add(tab.id));
       checkboxes.forEach(checkbox => {
         checkbox.checked = true;
         checkbox.closest('.tab-item').classList.add('selected');
@@ -304,11 +357,19 @@ class TabCloserPopup {
     this.updateSelectAllButton();
   }
 
+  getCurrentPageTabs() {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.inactiveTabs.slice(startIndex, endIndex);
+  }
+
   updateSelectAllButton() {
     const button = document.getElementById('select-all-inactive');
     const closeButton = document.getElementById('close-selected');
+    const currentPageTabs = this.getCurrentPageTabs();
+    const allCurrentPageSelected = currentPageTabs.every(tab => this.selectedTabs.has(tab.id));
     
-    if (this.selectedTabs.size === this.inactiveTabs.length && this.inactiveTabs.length > 0) {
+    if (allCurrentPageSelected && currentPageTabs.length > 0) {
       button.textContent = 'Deselect All';
     } else {
       button.textContent = 'Select All';
@@ -329,6 +390,14 @@ class TabCloserPopup {
       // Remove closed tabs from the list
       this.inactiveTabs = this.inactiveTabs.filter(tab => !this.selectedTabs.has(tab.id));
       this.selectedTabs.clear();
+      
+      // Adjust current page if needed
+      const totalPages = Math.ceil(this.inactiveTabs.length / this.itemsPerPage);
+      if (this.currentPage > totalPages && totalPages > 0) {
+        this.currentPage = totalPages;
+      } else if (this.inactiveTabs.length === 0) {
+        this.currentPage = 1;
+      }
       
       // Re-render
       this.renderInactiveTabs();
