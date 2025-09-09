@@ -142,6 +142,7 @@ class TabCloserPopup {
     // Add event listeners for checkboxes
     container.querySelectorAll('.tab-checkbox').forEach(checkbox => {
       checkbox.addEventListener('change', (e) => {
+        e.stopPropagation(); // Prevent tab item click from also firing
         const tabId = parseInt(e.target.dataset.tabId);
         if (e.target.checked) {
           this.selectedTabs.add(tabId);
@@ -166,8 +167,8 @@ class TabCloserPopup {
     // Add click handler for tab items to toggle selection
     container.querySelectorAll('.tab-item').forEach(item => {
       item.addEventListener('click', (e) => {
-        // Don't handle if clicking on "Go to tab" button
-        if (e.target.closest('.goto-tab-btn')) return;
+        // Don't handle if clicking on "Go to tab" button or checkbox
+        if (e.target.closest('.goto-tab-btn') || e.target.closest('.tab-checkbox')) return;
         
         const tabId = parseInt(item.dataset.tabId);
         const checkbox = item.querySelector('.tab-checkbox');
