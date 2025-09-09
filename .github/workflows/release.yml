@@ -1,0 +1,16 @@
+name: 🚀 Release Chrome Extension
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - '.github/**'
+      - 'tests/**'
+  workflow_dispatch:
+
+jobs:
+  # Run tests first
+  test:
+    uses: ./.github/workflows/test.yml
