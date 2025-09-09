@@ -486,3 +486,8 @@ let tabCloserPopup;
 document.addEventListener('DOMContentLoaded', () => {
   tabCloserPopup = new TabCloserPopup();
 });
+
+// Export for testing (only in Node.js environment)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { TabCloserPopup };
+}
